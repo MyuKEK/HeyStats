@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HeyStats Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; text-align: center; background: #18181b; color: #fdfdfd; }
+        .container { margin-top: 50px; }
+        #stats-box { border: 3px solid #6441a5; padding: 30px; border-radius: 12px; display: inline-block; background: #2a2a2e; box-shadow: 0 0 20px rgba(145, 70, 255, 0.5); }
+        #follower-count { font-size: 5em; font-weight: 700; color: #9146FF; margin: 0; }
+        .label { font-size: 1.2em; color: #aaa; margin-top: 5px; }
+        #streamer-name { color: #fdfdfd; font-weight: bold; }
+        #status { font-size: 0.8em; margin-top: 20px; color: #888; }
+        #live-status { font-weight: bold; margin: 15px 0; }
+        #stream-info { margin-top: 30px; background: #222; padding: 15px; border-radius: 8px; max-width: 500px; margin-left: auto; margin-right: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>HeyStats Streamer Dashboard</h1>
+        
+        <p class="label">Aktuelle Follower von <span id="streamer-name">...</span></p>
+        <div id="stats-box">
+            <p id="follower-count">Laden...</p>
+        </div>
+
+        <div id="stream-info">
+            <h3 id="live-status">Laden...</h3>
+            <p>Aktueller Titel: <span id="stream-title">...</span></p>
+            <p>Spiel: <span id="game-name">...</span></p>
+        </div>
+        
+        <p id="status">Letzte Aktualisierung: <span id="last-updated">--</span></p>
+        <p id="error-message" style="color: #ff5555; font-weight: bold;"></p>
+    </div>
+
+    <script>
+        const apiUrl = 'http://localhost:3000/api/stats/all'; // Der Endpunkt deines Node.js Servers
+
+        async function fetchStats() {
+            const errorElement = document.getElementById('error-message');
+            errorElement.textContent = '';
+            
+            try {
+                const response = await fetch(apiUrl);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP-Fehler! Status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                
+                // 1. Follower- und Streamer-Name
+                document.getElementById('streamer-name').textContent = data.streamer;
+                document.getElementById('follower-count').textContent = data.followers.toLocaleString('de-DE'); 
+                
+                // 2. Stream-Status
+                const liveStatusElement = document.getElementById('live-status');
+                if (data.is_live) {
+                    liveStatusElement.textContent = '🔴 LIVE';
+                    liveStatusElement.style.color = '#ff5555';
+                } else {
+                    liveStatusElement.textContent = '⚫ OFFLINE';
+                    liveStatusElement.style.color = '#aaa';
+                }
+                
+                // 3. Titel und Spiel
+                document.getElementById('stream-title').textContent = data.title;
+                document.getElementById('game-name').textContent = data.game;
+
+                const updateTime = new Date(data.last_updated).toLocaleTimeString('de-DE');
+                document.getElementById('last-updated').textContent = updateTime;
+
+            } catch (error) {
+                // Fehlerbehandlung
+                console.error("Fehler beim Abrufen der Statistiken:", error);
+                document.getElementById('follower-count').textContent = 'Fehler';
+                document.getElementById('streamer-name').textContent = 'API';
+                document.getElementById('stream-title').textContent = '—';
+                document.getElementById('game-name').textContent = '—';
+                document.getElementById('live-status').textContent = 'API FEHLER';
+                errorElement.textContent = `Fehler beim Laden der Daten. Läuft der Node.js Server?`;
+            }
+        }
+
+        // Stats einmal beim Start abrufen
+        fetchStats();
+
+        // Stats alle 10 Sekunden automatisch aktualisieren
+        setInterval(fetchStats, 10000); 
+    </script>
+</body>
+</html>
